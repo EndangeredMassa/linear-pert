@@ -28,7 +28,17 @@ function unqiue(issue: string, index: number, array: string[]) {
 let apiKey = getEnv('LINEAR_API_KEY');
 const linearClient = new LinearClient({ apiKey });
 
+/**
+ * log output to stderr (not pipeable)
+ */
 function log(message: string) {
+  console.error(message);
+}
+
+/**
+ * log output to stdout (pipeable)
+ */
+function output(message: string) {
   console.log(message);
 }
 
@@ -41,7 +51,7 @@ async function getAllIssues(issuesFetcher: LinearFetch<IssueConnection>) {
     await delay(100);
 
     await nextPage.fetchNext();
-    console.log(`  - ${nextPage.nodes.length}`);
+    log(`  - ${nextPage.nodes.length}`);
   }
 
   let nonCanceledIssues = nextPage.nodes.filter(i => !i.canceledAt);
@@ -93,27 +103,6 @@ function buildLabel(issue: Issue) {
 }
 
 function buildLink(graph: string) {
-  // https://mermaid.live/edit#pako:eNqN0kFrwyAUB_CvEt5pg7RojJp42Gm7DQbdrXNQm9g1NNGQGrau9LvPDrpIcdCbf_m9x_PhESpbaxCwae1ntVWDS54X0uzH9ceg-m2iKtdYo9atliZJlk-Ll1lGMXuTsPoL0tzh-5WE94AgHBCEIySndCI-RAhmfCI-RAii2UR88CS_JrwMCC9j42Iavig2CyLBLD5ECQtJuBdt6mCp_dDYoXGHsLQIS4t_S9etrXa6vqEymc0eLiZHgclRdPYb2pBwkeS8SDoNCSl0euhUU_vfdDx3luC2utMShD_WathJkObknRqdfT2YCoQbRp3C2NfK6cdG-Td2IDaq3fvbXpmltd0F-QjiCF8gGJvnGc8J5QxTmpUshQMIXKI55xknhHGEswLRUwrfvw3QvECc4DzDHJWIIcZPP_LT19M
-  // https://mermaid.live/edit#base64:eyJjb2RlIjoiY2xhc3NEaWFncmFtXG4gICAgQW5pbWFsIDx8LS0gRHVja1xuICAgIEFuaW1hbCA8fC0tIEZpc2hcbiAgICBBbmltYWwgPHwtLSBaZWJyYVxuICAgIEFuaW1hbCA6ICtpbnQgYWdlXG4gICAgQW5pbWFsIDogK1N0cmluZyBnZW5kZXJcbiAgICBBbmltYWw6ICtpc01hbW1hbCgpXG4gICAgQW5pbWFsOiArbWF0ZSgpXG4gICAgY2xhc3MgRHVja3tcbiAgICAgICtTdHJpbmcgYmVha0NvbG9yXG4gICAgICArc3dpbSgpXG4gICAgICArcXVhY2soKVxuICAgIH1cbiAgICBjbGFzcyBGaXNoe1xuICAgICAgLWludCBzaXplSW5GZWV0XG4gICAgICAtY2FuRWF0KClcbiAgICB9XG4gICAgY2xhc3MgWmVicmF7XG4gICAgICArYm9vbCBpc193aWxkXG4gICAgICArcnVuKClcbiAgICB9XG4gICAgICAgICAgICAiLCJtZXJtYWlkIjoie1xuICBcInRoZW1lXCI6IFwiZGVmYXVsdFwiXG59IiwidXBkYXRlRWRpdG9yIjpmYWxzZSwiYXV0b1N5bmMiOnRydWUsInVwZGF0ZURpYWdyYW0iOmZhbHNlfQ
-
-  /*
-  {
-    "code": "flowchart LR\nsubgraph actionable\n  ZERO-2516[\"`ZERO-2516\n(1)`\"]\n  ZERO-2515[\"`ZERO-2515\n(1)`\"]\n  ZERO-2079[\"`ZERO-2079\n(1)`\"]\n  ZERO-2052[\"`ZERO-2052\n(4)`\"]\n  ZERO-2501[\"`ZERO-2501\n(1)`\"]\n  ZERO-2167[\"`ZERO-2167\n(1)`\"]\n  ZERO-2037[\"`ZERO-2037\n(1)`\"]\n  ZERO-2036[\"`ZERO-2036\n(1)`\"]\n  ZERO-2455[\"`ZERO-2455\n(1)`\"]\nend\nsubgraph priority\n  ZERO-2038[\"`ZERO-2038\n(1)`\"]\nend\nsubgraph blocked\n  ZERO-2038[\"`ZERO-2038\n(1)`\"] --> ZERO-2040[\"`ZERO-2040\n(1)`\"]\n  ZERO-2038[\"`ZERO-2038\n(1)`\"] --> ZERO-2039[\"`ZERO-2039\n(5)`\"]\nend\n",
-    "mermaid": "{\n  \"theme\": \"dark\"\n}",
-    "autoSync": true,
-    "updateDiagram": true,
-    "panZoom": true,
-    "pan": {
-      "x": 0,
-      "y": 561.4395862465566
-    },
-    "zoom": 1,
-    "updateEditor": false,
-    "editorMode": "code",
-    "rough": false
-  }
-  */
-
   let mermaidObject = {
     code: graph,
     mermaid: "{\n  \"theme\": \"dark\"\n}",
@@ -243,7 +232,7 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
   graph += 'end\n';
 
 
-  log(graph);
+  output(graph);
 
   log('------\n');
 
