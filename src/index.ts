@@ -14,6 +14,9 @@ type NormalizedIssue = {
 };
 
 type NotUndefined<T> = T extends undefined ? never : T;
+
+const ISSUE_PROCESS_CONCURRENCY = 10;
+
 function isDefined<T>(item: NotUndefined<T> | undefined): item is NotUndefined<T> {
   return !!item;
 }
@@ -159,7 +162,7 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
   log('! determining workflow');
 
   let normalizedIssues: NormalizedIssue[] = [];
-  for await (const value of asyncPool(4, issues, normalize)) {
+  for await (const value of asyncPool(ISSUE_PROCESS_CONCURRENCY, issues, normalize)) {
     if (value) {
       normalizedIssues.push(value);
     }
@@ -177,7 +180,9 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
     .filter(isDefined)
     .filter(unqiue);
 
+
   graph += 'flowchart LR\n';
+
 
   if (showActionable) {
     graph += 'subgraph actionable\n';
@@ -197,6 +202,7 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
     graph += 'end\n';
   }
 
+
   graph += 'subgraph priority\n';
   for (let issue of normalizedIssues) {
     if (issue.blockedByIssues.length) {
@@ -213,17 +219,33 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
   }
   graph += 'end\n';
 
+
+  graph += 'subgraph external-blocked-by\n';
+  for (let issue of normalizedIssues) {
+    for (let blockerIssue of issue.blockedByIssues) {
+      let foundInIssueList = normalizedIssues.find(i => i.identifier === blockerIssue.identifier);
+      if (foundInIssueList) {
+        continue;
+      }
+
+      graph += `  ${blockerIssue.label}\n`;
+    }
+  }
+  graph += 'end\n';
+
+
   graph += 'subgraph blocked\n';
   for (let issue of normalizedIssues) {
     for (let blockerIssue of issue.blockedByIssues) {
-      graph += `  ${blockerIssue.label} --> ${issue.label}\n`; // declare the blocker
+      graph += `  ${blockerIssue.label} --> ${issue.label}\n`;
     }
   }
-  graph += 'end';
+  graph += 'end\n';
+
 
   log(graph);
 
-  log('\n------\n');
+  log('------\n');
 
   log(buildLink(graph));
 }
