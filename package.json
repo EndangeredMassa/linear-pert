@@ -1,0 +1,41 @@
+{
+  "name": "linear-pert",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": "22.7.0",
+    "pnpm": "9.8.0"
+  },
+  "scripts": {
+    "build": "pnpm run clean && pnpm run lint && tsc",
+    "clean": "node -e \"var { rmdirSync, existsSync } = require('fs'), path = require('path'); ['./dist'].forEach(fPath => {if (existsSync(path.join(__dirname, fPath))) rmdirSync(path.join(__dirname, fPath), { recursive: true })}); process.exit(0);\"",
+    "clean:all": "pnpm run clean && (rm -r ./node_modules || true)",
+    "lint": "eslint --ext .ts --fix src/**/*.ts test/**/*.ts",
+    "start": "ts-node ./src/index.ts",
+    "serve": "nodemon ./src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.1",
+    "@typescript-eslint/eslint-plugin": "^5.61.0",
+    "@typescript-eslint/parser": "^5.61.0",
+    "eslint": "^8.44.0",
+    "nodemon": "^3.0.1",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.1",
+    "typescript": "5.1.6",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  },
+  "dependencies": {
+    "@linear/sdk": "^29.0.0",
+    "@types/pako": "^2.0.3",
+    "@types/tiny-async-pool": "^2.0.3",
+    "dotenv": "^16.4.5",
+    "js-base64": "^3.7.7",
+    "pako": "^2.1.0",
+    "tiny-async-pool": "^2.1.0"
+  }
+}
