@@ -99,7 +99,7 @@ async function getBlockedByIssues(issue: Issue): Promise<NormalizedIssue[]> {
 
 function buildLabel(issue: Issue) {
   let estimate = issue.estimate || 1;
-  return `${issue.identifier}["\`${issue.identifier}\n(${estimate})\`"]`;
+  return `${issue.identifier}["${issue.identifier}<br/>(${estimate})"]`;
 }
 
 function buildLink(graph: string) {
@@ -157,42 +157,71 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
     }
   }
 
+  let blockingList = buildBlockingList(normalizedIssues);
+
   log('! building graph');
 
   log('\n------\n');
 
-  let graph = '';
+  let graph = buildGraph(showActionable, normalizedIssues, blockingList);
+  output(graph);
 
-  let blockingList = normalizedIssues
+  log('------\n');
+
+  log(buildLink(graph));
+}
+
+function buildBlockingList(normalizedIssues: NormalizedIssue[]) {
+  return normalizedIssues
     .flatMap(i => i.blockedByIssues)
     .flatMap(i => i?.identifier)
     .filter(isDefined)
     .filter(unqiue);
+}
 
+function buildGraph(showActionable: boolean, normalizedIssues: NormalizedIssue[], blockingList: string[]) {
+  let graph = '';
 
   graph += 'flowchart LR\n';
 
-
   if (showActionable) {
-    graph += 'subgraph actionable\n';
-    for (let issue of normalizedIssues) {
-      if (issue.blockedByIssues.length) {
-        // we don't show this here because it needs to appear only in the blocked subgraph
-        continue;
-      }
-
-      if (blockingList.includes(issue.identifier)) {
-        // this will unblock other issues, which should go in the priority subgraph
-        continue;
-      }
-
-      graph += `  ${issue.label}\n`;
-    }
-    graph += 'end\n';
+    graph += graphActionable(normalizedIssues, blockingList);
   }
+  graph += graphPriority(normalizedIssues, blockingList);
+  graph += graphExternal(normalizedIssues);
+  graph += graphBlocked(normalizedIssues);
+  return graph;
+}
 
+function graphBlocked(normalizedIssues: NormalizedIssue[]) {
+  let graph = '\nsubgraph blocked\n';
+  for (let issue of normalizedIssues) {
+    for (let blockerIssue of issue.blockedByIssues) {
+      graph += `  ${blockerIssue.label} --> ${issue.label}\n`;
+    }
+  }
+  graph += 'end\n';
+  return graph;
+}
 
-  graph += 'subgraph priority\n';
+function graphExternal(normalizedIssues: NormalizedIssue[]) {
+  let graph = '\nsubgraph external-blocked-by\n';
+  for (let issue of normalizedIssues) {
+    for (let blockerIssue of issue.blockedByIssues) {
+      let foundInIssueList = normalizedIssues.find(i => i.identifier === blockerIssue.identifier);
+      if (foundInIssueList) {
+        continue;
+      }
+
+      graph += `  ${blockerIssue.label}\n`;
+    }
+  }
+  graph += 'end\n';
+  return graph;
+}
+
+function graphPriority(normalizedIssues: NormalizedIssue[], blockingList: string[]) {
+  let graph = '\nsubgraph priority\n';
   for (let issue of normalizedIssues) {
     if (issue.blockedByIssues.length) {
       // we don't show this here because it needs to appear only in the blocked subgraph
@@ -207,36 +236,26 @@ async function processProjectIssues(projectId: string, showActionable: boolean) 
     graph += `  ${issue.label}\n`;
   }
   graph += 'end\n';
+  return graph;
+}
 
-
-  graph += 'subgraph external-blocked-by\n';
+function graphActionable(normalizedIssues: NormalizedIssue[], blockingList: string[]) {
+  let graph = '\nsubgraph actionable\n';
   for (let issue of normalizedIssues) {
-    for (let blockerIssue of issue.blockedByIssues) {
-      let foundInIssueList = normalizedIssues.find(i => i.identifier === blockerIssue.identifier);
-      if (foundInIssueList) {
-        continue;
-      }
-
-      graph += `  ${blockerIssue.label}\n`;
+    if (issue.blockedByIssues.length) {
+      // we don't show this here because it needs to appear only in the blocked subgraph
+      continue;
     }
+
+    if (blockingList.includes(issue.identifier)) {
+      // this will unblock other issues, which should go in the priority subgraph
+      continue;
+    }
+
+    graph += `  ${issue.label}\n`;
   }
   graph += 'end\n';
-
-
-  graph += 'subgraph blocked\n';
-  for (let issue of normalizedIssues) {
-    for (let blockerIssue of issue.blockedByIssues) {
-      graph += `  ${blockerIssue.label} --> ${issue.label}\n`;
-    }
-  }
-  graph += 'end\n';
-
-
-  output(graph);
-
-  log('------\n');
-
-  log(buildLink(graph));
+  return graph;
 }
 
 async function work() {
